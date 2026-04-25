@@ -1,12 +1,23 @@
 # Basic Knowledge Graph
 
-Dieses Repository enthaelt mehrere Versionen des Wissensgraphen. Jede Version liegt in einem eigenen Ordner und bringt ihren eigenen Python-Extractor, eine Svelte/D3-Weboberflaeche, Beispieldaten, Bilder und einen Windows-Quickstart mit.
+Dieses Repository enthaelt zwei Varianten eines lokalen Wissensgraphen. Beide lesen Exzerpte aus Markdown-Tabellen oder PDFs, erzeugen daraus `graph.json` und zeigen den Graphen anschliessend in einer Svelte/D3-Weboberflaeche an.
+
+Die Grundidee ist einfach: Ein Exzerpt wird nicht nur als Text angezeigt, sondern in Dokumente, Textstellen, erkannte Begriffe und Beziehungen zerlegt. Dadurch kann man im Browser sehen, welche Aussagen aus welcher Quelle stammen, welche Begriffe wiederkehren und wie sie miteinander verbunden sind.
+
+## Inhaltsverzeichnis
+
+- [Versionen](#versionen)
+- [Quickstart im Browser](#quickstart-im-browser)
+- [Eigene Exzerpte](#eigene-exzerpte)
+- [Wie der Graph grundsaetzlich funktioniert](#wie-der-graph-grundsaetzlich-funktioniert)
+- [Bedienung](#bedienung)
+- [Weiterfuehrende Dokumentation](#weiterfuehrende-dokumentation)
 
 ## Versionen
 
 ### withoutBoxing
 
-`withoutBoxing` ist die reduzierte Grundversion. Sie erzeugt aus Markdown- oder PDF-Exzerpten einen nachvollziehbaren Wissensgraphen mit Dokument-, Exzerpt-, Entitaets- und Relationsknoten. Diese Version eignet sich, wenn vor allem die extrahierten Aussagen und ihre Belegstellen im Browser erkundet werden sollen.
+`withoutBoxing` ist die reduzierte Grundversion. Sie baut aus den Eingaben einen nachvollziehbaren Wissensgraphen mit Dokument-, Exzerpt-, Entitaets- und Relationsknoten. Diese Variante eignet sich, wenn man vor allem sehen will, welche Aussagen und Begriffe direkt aus den Exzerpten extrahiert wurden.
 
 Technische Dokumentation: [withoutBoxing/README.md](withoutBoxing/README.md)
 
@@ -23,15 +34,17 @@ quickstart.bat
 
 ### withBoxing
 
-`withBoxing` erweitert die Grundversion um eine sichtbare TBox-Schicht. Gruene Boxen markieren Klassen, Unterklassen und Synonyme fuer den ganzen Graphen: Akteure, Organisationen, Orte, Rettungsdienst, Fahrzeuge, Medizinprodukte, vernetzte Systeme, Schnittstellen, IT-Sicherheit, Schwachstellen, Angriffe, Kryptographie, Daten, Firmware/Updates und Normen. Die DIN-EN-1789-Systematik bleibt als Teilbereich erhalten. Die aus Exzerpten gewonnenen Aussagen bleiben als ABox erhalten und werden ueber Klassifizierungsbeziehungen mit der TBox verbunden.
+`withBoxing` erweitert die Grundversion um eine sichtbare begriffliche Ordnung. Die extrahierten Textdaten bleiben als ABox erhalten: konkrete Dokumente, Exzerpte, Entitaeten und aus dem Text gewonnene Relationen. Zusaetzlich fuegt die Variante eine TBox hinzu: gruen dargestellte Klassen wie `Rettungsdienst`, `Rettungsdienstfahrzeug`, `DIN EN 1789`, `IT-Sicherheit`, `Schwachstelle`, `Schnittstelle`, `Drahtlose Kommunikation`, `Medizinprodukt` oder `Vernetztes System`.
+
+Diese Boxen sind fuer RAG-Szenarien nuetzlich, weil ein Retrieval-System nicht nur einzelne Textstellen finden kann, sondern die Treffer auch fachlich einordnen kann. Beispiel: Ein Exzerpt zur BSI-Orientierungsstudie nennt `DIN EN 1789`, `Typ A1`, `Typ A2`, `Typ B` oder `Typ C`. Die konkrete Nennung bleibt in der ABox, wird aber automatisch mit den passenden TBox-Klassen verbunden. So wird sichtbar, dass `Krankentransportwagen Typ A1` und `Krankentransportwagen Typ A2` Unterklassen von `Krankentransportwagen` sind, waehrend `Rettungswagen (Typ C)` normativ ein eigener Fahrzeugtyp ist und trotzdem ueber einen Hinweis als fachlich verwandte, aber nicht identische Klasse markiert wird.
 
 Technische Dokumentation: [withBoxing/README.md](withBoxing/README.md)
 
-![1777144638956](image/README/1777144638956.png)
+![withBoxing Graphansicht 1](image/README/1777144638956.png)
 
-![1777144642491](image/README/1777144642491.png)
+![withBoxing Graphansicht 2](image/README/1777144642491.png)
 
-![1777144647899](image/README/1777144647899.png)
+![withBoxing Detailansicht](image/README/1777144647899.png)
 
 Start:
 
@@ -79,6 +92,12 @@ Optional koennen vor der Tabelle Metadaten stehen:
 - **Jahr:** 1848
 ```
 
+## Wie der Graph grundsaetzlich funktioniert
+
+Jede Eingabedatei wird zuerst als `Document` erfasst. Jede Tabellenzeile oder PDF-Seite wird ein `Excerpt`. Aus `Inhalt` und `Anmerkung` werden Entitaeten und Begriffe erkannt, zum Beispiel Organisationen, Orte, Produktnamen, Normen oder fachliche Konzepte. Zwischen Exzerpten und Begriffen entstehen `MENTIONS`-Kanten. Wenn ein Satz einfache Muster wie "ist", "umfasst", "nutzt" oder "ist Teil von" enthaelt, werden daraus zusaetzliche Relationskanten wie `IS_A`, `HAS_PART`, `USES` oder `PART_OF`.
+
+In `withBoxing` kommt danach die Box-Schicht hinzu. Die Stichwoerter fuer diese Boxen sind im Code als `aliases` und `keywords` hinterlegt, aber sie wirken erst auf Grundlage des konkreten Eingabe-Exzerpts. Wenn die BSI-Orientierungsstudie also haeufig `Rettungsdienst`, `DIN EN 1789`, `Bluetooth`, `WLAN`, `Beatmungsgeraet`, `RTW` oder `KTW` nennt, werden genau diese extrahierten ABox-Knoten mit passenden Klassen verbunden. Ein anderes Exzerpt wuerde andere konkrete ABox-Knoten erzeugen und deshalb auch andere Klassifizierungen sichtbar machen.
+
 ## Bedienung
 
 - Suche: filtert Knoten und Kanten ueber das Suchfeld.
@@ -87,7 +106,7 @@ Optional koennen vor der Tabelle Metadaten stehen:
 - Rechte Maustaste auf freier Flaeche ziehen: verschiebt die Ansicht.
 - Knoten anklicken: oeffnet rechts die Detailansicht mit Typ und Rohdaten.
 
-Weitere Details stehen in den READMEs der einzelnen Versionen:
+## Weiterfuehrende Dokumentation
 
 - [withoutBoxing/README.md](withoutBoxing/README.md)
 - [withBoxing/README.md](withBoxing/README.md)

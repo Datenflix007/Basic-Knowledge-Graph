@@ -1,6 +1,24 @@
-# Basic Knowledge Graph
+# Basic Knowledge Graph withoutBoxing
 
-Werkzeug zum Erzeugen und Erkunden eines nachvollziehbaren Wissensgraphen aus historischen Exzerpten. Die Exzerpte werden aus Markdown-Tabellen oder PDFs gelesen, in Dokument-, Exzerpt-, Entitaets- und Relationsknoten ueberfuehrt und anschliessend in einer Svelte/D3-Visualisierung angezeigt.
+`withoutBoxing` ist die Grundversion des Projekts. Sie erzeugt aus Exzerpten einen nachvollziehbaren Wissensgraphen, ohne eine zusaetzliche Klassen- oder Box-Schicht einzubauen. Alles, was im Browser sichtbar wird, stammt direkt aus den Eingabedateien oder aus der einfachen regelbasierten Extraktion.
+
+## Inhaltsverzeichnis
+
+- [Wofuer diese Version gedacht ist](#wofuer-diese-version-gedacht-ist)
+- [Schnellstart](#schnellstart)
+- [Exzerpte eingeben](#exzerpte-eingeben)
+- [Wie die Verarbeitung funktioniert](#wie-die-verarbeitung-funktioniert)
+- [Bedienung](#bedienung)
+- [Technische Dokumentation](#technische-dokumentation)
+- [Geschichtswissenschaftlicher Anspruch](#geschichtswissenschaftlicher-anspruch)
+- [Manuelle Installation](#manuelle-installation)
+- [Benutzte Literatur](#benutzte-literatur)
+
+## Wofuer diese Version gedacht ist
+
+Diese Variante eignet sich, wenn die unmittelbare Exzerptstruktur im Vordergrund stehen soll: Welche Datei wurde eingelesen? Welche Textstelle steht auf welcher Seite? Welche Begriffe wurden darin erkannt? Welche einfachen Relationen lassen sich aus den Saetzen ableiten?
+
+Die Version unterscheidet Dokumente, Exzerpte, erkannte Entitaeten und extrahierte Relationen. Sie fuegt aber keine fachliche TBox hinzu. Dadurch bleibt der Graph kleiner und naeher am Eingabetext.
 
 ![Knowledge Graph Ansicht](image/README/1777141057602.png)
 
@@ -25,7 +43,7 @@ Das Skript richtet alles ein:
 
 Voraussetzungen sind Python 3.10+ und Node.js/npm. Nach dem Start zeigt Vite die lokale URL im Terminal an, typischerweise `http://localhost:5173/`.
 
-## Exzerpte Eingeben
+## Exzerpte eingeben
 
 Beim Start fragt `quickstart.bat`, ob das Standardbeispiel oder eigene Exzerpte verwendet werden sollen. Bei eigenen Exzerpten oeffnet sich ein Dateidialog. Dort koennen eine oder mehrere Markdown- oder PDF-Dateien ausgewaehlt werden. Danach fragt das Skript, ob weitere Exzerpte hinzugefuegt werden sollen. Erst wenn diese Frage nicht mit `j` beantwortet wird, baut das Skript den Wissensgraphen.
 
@@ -51,6 +69,14 @@ Die CLI kann ebenfalls mehrere Dateien direkt verarbeiten:
 ```bash
 python -m kgexzerpt.cli build exzerpt.md exzerpt2.md quelle.pdf --out graph.json --format svelte
 ```
+
+## Wie die Verarbeitung funktioniert
+
+Die Verarbeitung laeuft in mehreren Schritten. Zuerst liest der Loader Markdown-Tabellen oder PDF-Seiten ein. Danach wird pro Eingabedatei ein `Document`-Knoten erzeugt. Jede Tabellenzeile beziehungsweise jede PDF-Seite wird ein `Excerpt`-Knoten.
+
+Aus dem Text in `Inhalt` und `Anmerkung` werden Entitaeten erkannt. Wenn spaCy verfuegbar ist, nutzt das Projekt das deutsche Modell und uebernimmt zum Beispiel Personen, Organisationen, Orte und Nominalphrasen. Falls kein Modell installiert ist, greift ein Regex-Fallback auf auffaellige Grossschreibungen, Akronyme und Mehrwortbegriffe zurueck.
+
+Anschliessend sucht der Relationsextraktor nach einfachen Satzmustern. Ein Satz wie "Der Stadtrat ist Teil der lokalen Verwaltung" kann zum Beispiel eine `PART_OF`-Relation erzeugen. Die Kante merkt sich den Evidenzsatz, damit im Browser nachvollziehbar bleibt, aus welcher Formulierung die Relation stammt.
 
 ## Bedienung
 
@@ -120,11 +146,11 @@ Knoten enthalten mindestens `id`, `label` und `kind`. Typische `kind`-Werte sind
 
 Kanten enthalten mindestens `id`, `source`, `target` und `type`. Die IDs werden stabil aus Inhalt, Quelle oder Relation berechnet, damit derselbe Input reproduzierbare Knoten- und Kanten-IDs erzeugt.
 
-### Kantentypen in withoutBoxing
+### Kantentypen
 
 - `HAS_EXCERPT`: verbindet ein `Document` mit seinen `Excerpt`-Knoten.
-- `MENTIONS`: verbindet ein `Excerpt` mit einer darin erkannten Entitaet. Die Kante traegt eine `confidence`.
-- `EVIDENCE_FOR`: verbindet ein `Excerpt` mit Subjekt und Objekt einer extrahierten Relation. Dadurch bleibt sichtbar, welche Textstelle eine Relation belegt.
+- `MENTIONS`: verbindet ein `Excerpt` mit einer darin erkannten Entitaet.
+- `EVIDENCE_FOR`: verbindet ein `Excerpt` mit Subjekt und Objekt einer extrahierten Relation.
 - `IS_A`: entsteht bei Mustern wie `ist`, `sind`, `gilt als`, `wird als`.
 - `HAS_PART`: entsteht bei Mustern wie `enthaelt`, `umfasst`, `beinhaltet`, `besteht aus`.
 - `USES`: entsteht bei Mustern wie `nutzt`, `verwendet`, `setzt ein`.
@@ -142,7 +168,7 @@ Nach dem Bau kopiert `quickstart.bat` die erzeugte Datei nach `svelte-app/public
 graph = await fetch(url).then(r => r.json());
 ```
 
-Danach wird der Graph mit D3 gerendert. Die App berechnet aus `nodes` und `edges` eine Force-Layout-Simulation:
+Danach wird der Graph mit D3 gerendert:
 
 - Knoten werden als SVG-Kreise gezeichnet.
 - Kanten werden als SVG-Linien gezeichnet.
@@ -152,7 +178,7 @@ Danach wird der Graph mit D3 gerendert. Die App berechnet aus `nodes` und `edges
 
 ## Geschichtswissenschaftlicher Anspruch
 
-Der Graph ist kein Ersatz fuer Quellenkritik, sondern ein Werkzeug zur strukturierten Exploration. Jede Wissenseinheit soll aus einem Exzerpt mit Seitenangabe, Inhalt und Anmerkung hervorgehen, damit Aussagen auf ihre Belegstelle zurueckgefuehrt werden koennen. Gerade fuer historische Arbeit ist wichtig, dass der Graph nicht vorgibt, Ambivalenz aufzulosen: Er macht Verdichtungen, wiederkehrende Begriffe, Akteurskonstellationen und moegliche Relationen sichtbar, die anschliessend hermeneutisch und quellenkritisch geprueft werden muessen.
+Der Graph ist kein Ersatz fuer Quellenkritik, sondern ein Werkzeug zur strukturierten Exploration. Jede Wissenseinheit soll aus einem Exzerpt mit Seitenangabe, Inhalt und Anmerkung hervorgehen, damit Aussagen auf ihre Belegstelle zurueckgefuehrt werden koennen. Gerade fuer historische Arbeit ist wichtig, dass der Graph nicht vorgibt, Ambivalenz aufzuloesen: Er macht Verdichtungen, wiederkehrende Begriffe, Akteurskonstellationen und moegliche Relationen sichtbar, die anschliessend hermeneutisch und quellenkritisch geprueft werden muessen.
 
 Die automatische Extraktion arbeitet bewusst konservativ. Sie erzeugt Vorschlaege fuer Entitaeten und Relationen, aber keine abschliessenden historischen Urteile. Der wissenschaftliche Mehrwert liegt in der Nachvollziehbarkeit der Belege, der Vergleichbarkeit vieler Exzerpte und der Moeglichkeit, Forschungshypothesen sichtbar zu machen, ohne die argumentative Pruefung auszulagern.
 
@@ -163,11 +189,11 @@ Falls der Quickstart nicht genutzt werden soll:
 ```bash
 python -m venv .venv
 .\.venv\Scripts\activate
-
-
+pip install -e .
+python -m kgexzerpt.cli build exzerpt.md --out graph.json --format svelte
 ```
 
-## benutzte Literatur:
+## Benutzte Literatur
 
 - [Building Knowledge Graphs](https://go.neo4j.com/rs/710-RRC-335/images/Building-Knowledge-Graphs-Practitioner's-Guide-OReilly-book.pdf)
 - [Knowledge Graphs data.world.pdf](https://page.data.world/hubfs/Knowledge%20Graphs%20data.world.pdf)
