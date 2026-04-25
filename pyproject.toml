@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kgexzerpt"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pymupdf>=1.24.0",
+    "networkx>=3.2",
+    "pydantic<2.0",
+    "rapidfuzz>=3.9",
+    "spacy>=3.7",
+    "rich>=13.7",
+]
+
+[project.scripts]
+kgexzerpt = "kgexzerpt.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kgexzerpt*"]
