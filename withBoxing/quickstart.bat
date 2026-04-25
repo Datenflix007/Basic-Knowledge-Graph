@@ -102,10 +102,17 @@ if errorlevel 1 (
 
 pushd "svelte-app"
 echo Installiere Node-Abhaengigkeiten...
-npm install
+call npm install
+if errorlevel 1 (
+    echo Fehler beim Installieren der Node-Abhaengigkeiten.
+    popd
+    pause
+    exit /b 1
+)
 
-echo Starte Vite-Entwicklungsserver (Browser oeffnet sich automatisch)...
-npm run dev
+echo Starte Vite-Entwicklungsserver und oeffne den Wissensgraphen im Browser...
+echo Falls der Browser nicht automatisch startet, oeffne die im Terminal angezeigte Local-URL.
+call npm run dev -- --host 127.0.0.1 --open
 
 popd
 if exist "!INPUT_LIST!" del "!INPUT_LIST!" >nul 2>&1

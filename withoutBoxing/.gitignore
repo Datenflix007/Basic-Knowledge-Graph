@@ -125,3 +125,4 @@ dmypy.json
 Thumbs.db
 
 svelte-app/node_modules/
+svelte-app/dist/
