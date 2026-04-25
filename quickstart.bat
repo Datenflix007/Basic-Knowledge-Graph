@@ -10,30 +10,51 @@ echo ==========================================
 echo.
 echo Welche Eingabedatei soll verwendet werden?
 echo   [1]  Standardbeispiel (wird automatisch erstellt)
-echo   [2]  Eigenes Exzerpt auswaehlen (Dateidialog)
+echo   [2]  Eigene Exzerpte hinzufuegen (Dateidialog, beliebig viele)
 echo.
 set /p CHOICE="Auswahl (1 oder 2): "
 
-set "INPUT_FILE="
+set /a INPUT_COUNT=0
+set "INPUT_LIST=%TEMP%\kgexzerpt_inputs_%RANDOM%_%RANDOM%.txt"
+if exist "!INPUT_LIST!" del "!INPUT_LIST!" >nul 2>&1
 
-if "%CHOICE%"=="2" (
-    echo Oeffne Dateidialog...
-    for /f "usebackq delims=" %%F in (`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Exzerpt auswaehlen'; $d.Filter = 'Markdown (*.md)|*.md|Alle Dateien (*.*)|*.*'; $d.InitialDirectory = '%~dp0'; if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.FileName }"`) do set "INPUT_FILE=%%F"
-    if "!INPUT_FILE!"=="" echo Kein Exzerpt ausgewaehlt, verwende Standardbeispiel.
+if not "%CHOICE%"=="2" goto after_excerpts
+
+:add_excerpts
+echo.
+echo Oeffne Dateidialog. Du kannst eine oder mehrere Dateien auswaehlen.
+for /f "usebackq delims=" %%F in (`powershell -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Exzerpte auswaehlen'; $d.Filter = 'Markdown/PDF (*.md;*.pdf)|*.md;*.pdf|Markdown (*.md)|*.md|PDF (*.pdf)|*.pdf|Alle Dateien (*.*)|*.*'; $d.InitialDirectory = '%~dp0'; $d.Multiselect = $true; if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $d.FileNames | ForEach-Object { Write-Output $_ } }"`) do (
+    set /a INPUT_COUNT+=1
+    >> "!INPUT_LIST!" echo(%%F
+    echo   [+] %%F
 )
 
-if "!INPUT_FILE!"=="" (
-    set "INPUT_FILE=%~dp0example.md"
+if !INPUT_COUNT! EQU 0 (
+    echo Keine Exzerpte ausgewaehlt.
+    set /p RETRY="Nochmal auswaehlen? (j/n): "
+    if /I "!RETRY!"=="j" goto add_excerpts
+) else (
+    echo.
+    echo Aktuell ausgewaehlte Exzerpte: !INPUT_COUNT!
+    set /p MORE="Weitere Exzerpte hinzufuegen? (j = weitere, sonst Graph bauen): "
+    if /I "!MORE!"=="j" goto add_excerpts
+)
+
+:after_excerpts
+if !INPUT_COUNT! EQU 0 (
+    set "EXAMPLE_FILE=%~dp0example.md"
+    > "!INPUT_LIST!" echo(!EXAMPLE_FILE!
     echo Erstelle Standardbeispiel...
     (
         echo ^| Seite ^| Inhalt ^| Anmerkung ^|
         echo ^|-------^|--------^|-----------^|
         echo ^| 1 ^| Dies ist ein Beispieltext. ^| Wichtige Information ^|
-    ) > "!INPUT_FILE!"
+    ) > "!EXAMPLE_FILE!"
 )
 
 echo.
-echo Eingabedatei: !INPUT_FILE!
+echo Eingabedateien:
+type "!INPUT_LIST!"
 echo.
 
 echo Erstelle virtuelle Umgebung...
@@ -59,7 +80,9 @@ if errorlevel 1 (
 )
 
 echo Baue Wissensgraph...
-"%PYTHON%" -m kgexzerpt.cli build "!INPUT_FILE!" --out graph.json --format svelte
+set "KG_INPUT_LIST=!INPUT_LIST!"
+set "KG_PYTHON=%PYTHON%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$inputs = Get-Content -LiteralPath $env:KG_INPUT_LIST; & $env:KG_PYTHON -m kgexzerpt.cli build @inputs --out graph.json --format svelte; exit $LASTEXITCODE"
 if errorlevel 1 (
     echo Fehler beim Erstellen von graph.json
     pause
@@ -85,4 +108,5 @@ echo Starte Vite-Entwicklungsserver (Browser oeffnet sich automatisch)...
 npm run dev
 
 popd
+if exist "!INPUT_LIST!" del "!INPUT_LIST!" >nul 2>&1
 endlocal
