@@ -104,6 +104,12 @@
     return label;
   }
 
+  function edgeClass(d) {
+    if (d.layer === 'TBox') return 'edge-tbox';
+    if (d.layer === 'ABox_to_TBox') return 'edge-classification';
+    return 'edge-abox';
+  }
+
   function draw() {
     const svg = d3.select(svgEl);
     svg.selectAll('*').remove();
@@ -112,7 +118,7 @@
     const edges = visibleEdges.map(d => ({ ...d }));
 
     const sim = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(edges).id(d => d.id).distance(d => d.layer === 'TBox' ? 78 : 105))
+      .force('link', d3.forceLink(edges).id(d => d.id).distance(d => d.layer === 'TBox' ? 78 : d.layer === 'ABox_to_TBox' ? 120 : 105))
       .force('charge', d3.forceManyBody().strength(-320))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collide', d3.forceCollide(34));
@@ -122,7 +128,7 @@
     const edge = viewport.append('g').attr('stroke-opacity', 0.55)
       .selectAll('line').data(edges).join('line')
       .attr('stroke-width', d => d.layer === 'TBox' ? 2 : 1.4)
-      .attr('class', d => d.layer === 'TBox' ? 'edge-tbox' : 'edge-abox');
+      .attr('class', edgeClass);
 
     const edgeLabel = viewport.append('g').selectAll('text').data(edges).join('text')
       .attr('font-size', 9).attr('opacity', 0.7).text(d => d.type);
@@ -217,6 +223,7 @@
   :global(.node-synonym) { fill:#fff4d8; stroke:#9a6b00; stroke-width:1.4; stroke-dasharray:4 2; }
   :global(line) { stroke:#555; }
   :global(.edge-tbox) { stroke:#116149; }
+  :global(.edge-classification) { stroke:#7aa897; stroke-dasharray:3 3; }
   :global(.edge-abox) { stroke:#555; }
   aside { flex:0 0 clamp(320px, 26vw, 460px); border:1px solid #ddd; border-radius:8px; padding:1rem; overflow:auto; min-height:0; }
   pre { white-space:pre-wrap; font-size:12px; }

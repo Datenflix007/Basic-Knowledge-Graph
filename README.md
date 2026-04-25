@@ -21,11 +21,13 @@ quickstart.bat
 
 ### withBoxing
 
-`withBoxing` erweitert die Grundversion um eine sichtbare TBox-Schicht. Gruene Boxen markieren Klassen, Unterklassen und Synonyme, zum Beispiel rund um Rettungsdienstfahrzeuge nach DIN EN 1789. Die aus Exzerpten gewonnenen Aussagen bleiben als ABox erhalten und werden ueber Klassifizierungsbeziehungen mit der TBox verbunden.
+`withBoxing` erweitert die Grundversion um eine sichtbare TBox-Schicht. Gruene Boxen markieren Klassen, Unterklassen und Synonyme fuer den ganzen Graphen: Akteure, Organisationen, Orte, Rettungsdienst, Fahrzeuge, Medizinprodukte, vernetzte Systeme, Schnittstellen, IT-Sicherheit, Schwachstellen, Angriffe, Kryptographie, Daten, Firmware/Updates und Normen. Die DIN-EN-1789-Systematik bleibt als Teilbereich erhalten. Die aus Exzerpten gewonnenen Aussagen bleiben als ABox erhalten und werden ueber Klassifizierungsbeziehungen mit der TBox verbunden.
 
-![withBoxing Graphansicht](withBoxing/image/README/1777141057602.png)
+![1777144638956](image/README/1777144638956.png)
 
-![withBoxing Detailansicht](withBoxing/image/README/1777141064098.png)
+![1777144642491](image/README/1777144642491.png)
+
+![1777144647899](image/README/1777144647899.png)
 
 Start:
 

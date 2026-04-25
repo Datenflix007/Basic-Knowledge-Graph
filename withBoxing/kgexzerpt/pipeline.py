@@ -4,7 +4,7 @@ from typing import Iterable
 from .loaders import load_sources
 from .extractors import SpacyOrRegexEntityExtractor, PatternRelationExtractor, EntityExtractor, RelationExtractor
 from .graph import KnowledgeGraph
-from .ontology import add_rescue_service_tbox
+from .ontology import add_domain_tbox
 
 
 def build_knowledge_graph(
@@ -22,6 +22,6 @@ def build_knowledge_graph(
             kg.add_entity(ent)
         for triple in relation_extractor.extract(row, entities):
             kg.add_triple(triple)
-    add_rescue_service_tbox(kg)
+    add_domain_tbox(kg)
     kg.classify_entities_by_aliases()
     return kg

@@ -2,9 +2,11 @@
 
 Werkzeug zum Erzeugen und Erkunden eines nachvollziehbaren Wissensgraphen aus historischen Exzerpten. Die Exzerpte werden aus Markdown-Tabellen oder PDFs gelesen, in Dokument-, Exzerpt-, Entitaets- und Relationsknoten ueberfuehrt und anschliessend in einer Svelte/D3-Visualisierung angezeigt.
 
-![Knowledge Graph Ansicht](image/README/1777141057602.png)
+![1777144608430](image/README/1777144608430.png)
 
-![Detailansicht](image/README/1777141064098.png)
+![1777144611294](image/README/1777144611294.png)
+
+![1777144616390](image/README/1777144616390.png)
 
 ## Schnellstart
 
@@ -64,7 +66,9 @@ In der Visualisierung stehen diese Steuerungen zur Verfuegung:
 
 Die Anzeige unterscheidet Dokumente, Exzerpte und erkannte Entitaeten. Kanten zeigen Provenienz- und Relationsinformationen, soweit sie aus den Exzerpten ableitbar sind.
 
-Gruene Boxen markieren die TBox, also die begriffliche Ordnung des Wissensgraphen: Klassen, Unterklassen und Synonyme. Der Graph enthaelt z. B. eine kleine DIN-EN-1789-Systematik fuer Rettungsdienstfahrzeuge mit `Rettungsdienstfahrzeug`, `Krankentransportwagen`, `Krankentransportwagen Typ A1/A2`, `Notfallkrankenwagen` und `Rettungswagen (Typ C)`. Synonyme wie `RTW`, `Rettungswagen` oder `KTW Typ C` werden als eigene Synonym-Knoten an die passende Klasse gebunden. Normale Entitaeten und belegte Exzerptaussagen bleiben die ABox und werden ueber `CLASSIFIED_AS` an diese Klassen angeschlossen.
+Gruene Boxen markieren die TBox, also die begriffliche Ordnung des Wissensgraphen: Klassen, Unterklassen und Synonyme. Diese Ordnung ist nicht mehr nur fuer die DIN-EN-1789-Systematik angelegt, sondern fuer den ganzen Graphen. Sie umfasst u. a. `Akteur`, `Organisation`, `Ort`, `Rettungsdienst`, `Rettungsdienstfahrzeug`, `Medizinprodukt`, `Vernetztes System`, `Schnittstelle`, `Drahtlose Kommunikation`, `IT-Sicherheit`, `Schwachstelle`, `Angriff und Angriffsmodell`, `Kryptographie und Verschluesselung`, `Daten und Datenschutz`, `Firmware und Update` sowie `Norm und Standard`.
+
+Die DIN-EN-1789-Boxen bleiben als fachlicher Teilbereich erhalten: `Rettungsdienstfahrzeug`, `Krankentransportwagen`, `Krankentransportwagen Typ A1/A2`, `Notfallkrankenwagen`, `Rettungswagen (Typ C)` und `DIN EN 1789`. Synonyme wie `RTW`, `Rettungswagen`, `KTW Typ C`, `BSI`, `TLS 1.3`, `BitLocker`, `Bluetooth` oder `Patientendaten` werden als eigene Synonym-Knoten an passende Klassen gebunden. Normale Entitaeten und belegte Exzerptaussagen bleiben die ABox und werden automatisch ueber `CLASSIFIED_AS` an TBox-Klassen angeschlossen. Die Klassifizierung nutzt erkannte Entitaetstypen, Aliase und fachliche Keywords.
 
 ## Geschichtswissenschaftlicher Anspruch
 

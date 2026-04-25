@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import re
 from pathlib import Path
 from typing import Any
 import networkx as nx
@@ -68,19 +69,35 @@ class KnowledgeGraph:
 
     def classify_entities_by_aliases(self) -> None:
         classes = [
-            (node_id, {str(a).lower() for a in data.get("aliases", [])})
+            (
+                node_id,
+                {
+                    "aliases": {_norm_text(a) for a in data.get("aliases", [])},
+                    "keywords": {_norm_text(k) for k in data.get("keywords", [])},
+                    "entity_kinds": {str(k) for k in data.get("entity_kinds", [])},
+                },
+            )
             for node_id, data in self.g.nodes(data=True)
             if data.get("kind") == "Class"
         ]
         for node_id, data in list(self.g.nodes(data=True)):
             if data.get("kind") in {"Class", "Synonym", "Document", "Excerpt"}:
                 continue
-            terms = {str(data.get("label", "")).lower()}
-            terms.update(str(a).lower() for a in data.get("aliases", []))
-            for class_id, aliases in classes:
-                if terms & aliases:
+            terms = {_norm_text(data.get("label", ""))}
+            terms.update(_norm_text(a) for a in data.get("aliases", []))
+            entity_kind = str(data.get("kind", ""))
+            for class_id, matchers in classes:
+                matched_by = _class_match_reason(terms, entity_kind, matchers)
+                if matched_by:
                     edge_id = f"CLASSIFIED_AS:{stable_id(node_id, class_id)}"
-                    self.g.add_edge(node_id, class_id, key=edge_id, type="CLASSIFIED_AS", layer="ABox_to_TBox")
+                    self.g.add_edge(
+                        node_id,
+                        class_id,
+                        key=edge_id,
+                        type="CLASSIFIED_AS",
+                        layer="ABox_to_TBox",
+                        matched_by=matched_by,
+                    )
 
     def to_svelte_json(self) -> dict[str, Any]:
         return {
@@ -98,3 +115,22 @@ class KnowledgeGraph:
         for u, v, k, data in self.g.edges(keys=True, data=True):
             h.add_edge(u, v, key=k, **{kk: json.dumps(vv, ensure_ascii=False) if isinstance(vv, (dict, list)) else vv for kk, vv in data.items()})
         nx.write_graphml(h, path)
+
+
+def _norm_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value).strip().lower())
+
+
+def _class_match_reason(terms: set[str], entity_kind: str, matchers: dict[str, set[str]]) -> str | None:
+    if entity_kind in matchers["entity_kinds"]:
+        return f"entity_kind:{entity_kind}"
+    if terms & matchers["aliases"]:
+        return "alias"
+    for term in terms:
+        for alias in matchers["aliases"]:
+            if len(alias) >= 5 and (alias in term or term in alias):
+                return f"alias:{alias}"
+        for keyword in matchers["keywords"]:
+            if len(keyword) >= 4 and keyword in term:
+                return f"keyword:{keyword}"
+    return None
