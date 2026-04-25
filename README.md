@@ -2,6 +2,12 @@
 
 Python-Paket, um aus PDFs oder Markdown-Exzerpten im Format `| Seite | Inhalt | Anmerkung |` einen nachvollziehbaren Property-Graphen aufzubauen.
 
+
+![1777141057602](image/README/1777141057602.png)
+
+![1777141064098](image/README/1777141064098.png)
+
+
 ## Installation
 
 ```bash
