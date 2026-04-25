@@ -8,6 +8,8 @@ Dieses Repository enthaelt mehrere Versionen des Wissensgraphen. Jede Version li
 
 `withoutBoxing` ist die reduzierte Grundversion. Sie erzeugt aus Markdown- oder PDF-Exzerpten einen nachvollziehbaren Wissensgraphen mit Dokument-, Exzerpt-, Entitaets- und Relationsknoten. Diese Version eignet sich, wenn vor allem die extrahierten Aussagen und ihre Belegstellen im Browser erkundet werden sollen.
 
+Technische Dokumentation: [withoutBoxing/README.md](withoutBoxing/README.md)
+
 ![withoutBoxing Graphansicht](withoutBoxing/image/README/1777141057602.png)
 
 ![withoutBoxing Detailansicht](withoutBoxing/image/README/1777141064098.png)
@@ -22,6 +24,8 @@ quickstart.bat
 ### withBoxing
 
 `withBoxing` erweitert die Grundversion um eine sichtbare TBox-Schicht. Gruene Boxen markieren Klassen, Unterklassen und Synonyme fuer den ganzen Graphen: Akteure, Organisationen, Orte, Rettungsdienst, Fahrzeuge, Medizinprodukte, vernetzte Systeme, Schnittstellen, IT-Sicherheit, Schwachstellen, Angriffe, Kryptographie, Daten, Firmware/Updates und Normen. Die DIN-EN-1789-Systematik bleibt als Teilbereich erhalten. Die aus Exzerpten gewonnenen Aussagen bleiben als ABox erhalten und werden ueber Klassifizierungsbeziehungen mit der TBox verbunden.
+
+Technische Dokumentation: [withBoxing/README.md](withBoxing/README.md)
 
 ![1777144638956](image/README/1777144638956.png)
 

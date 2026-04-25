@@ -70,6 +70,127 @@ Gruene Boxen markieren die TBox, also die begriffliche Ordnung des Wissensgraphe
 
 Die DIN-EN-1789-Boxen bleiben als fachlicher Teilbereich erhalten: `Rettungsdienstfahrzeug`, `Krankentransportwagen`, `Krankentransportwagen Typ A1/A2`, `Notfallkrankenwagen`, `Rettungswagen (Typ C)` und `DIN EN 1789`. Synonyme wie `RTW`, `Rettungswagen`, `KTW Typ C`, `BSI`, `TLS 1.3`, `BitLocker`, `Bluetooth` oder `Patientendaten` werden als eigene Synonym-Knoten an passende Klassen gebunden. Normale Entitaeten und belegte Exzerptaussagen bleiben die ABox und werden automatisch ueber `CLASSIFIED_AS` an TBox-Klassen angeschlossen. Die Klassifizierung nutzt erkannte Entitaetstypen, Aliase und fachliche Keywords.
 
+## Technische Dokumentation
+
+### Pipeline von Exzerpt zu JSON
+
+Der Einstiegspunkt ist die CLI in `kgexzerpt/cli.py`. Der Quickstart ruft intern diesen Befehl auf:
+
+```bash
+python -m kgexzerpt.cli build exzerpt.md exzerpt2.md --out graph.json --format svelte
+```
+
+Die CLI ruft `build_knowledge_graph()` aus `kgexzerpt/pipeline.py` auf. Die Verarbeitung laeuft in vier Schichten:
+
+1. `load_sources()` liest Markdown- oder PDF-Dateien.
+2. `KnowledgeGraph` baut aus Dokumenten, Exzerpten, Entitaeten und Relationen die ABox.
+3. `add_domain_tbox()` aus `kgexzerpt/ontology.py` fuegt die TBox-Klassen, Synonyme und Klassenrelationen hinzu.
+4. `classify_entities_by_aliases()` verbindet ABox-Entitaeten ueber `CLASSIFIED_AS` mit passenden TBox-Klassen.
+
+Intern wird ein `networkx.MultiDiGraph` verwendet. Beim Export erzeugt `to_svelte_json()` daraus eine JSON-Struktur mit `nodes` und `edges`; `export_json()` schreibt diese Struktur als UTF-8 nach `graph.json`.
+
+### JSON-Struktur
+
+Die Datei `graph.json` hat zwei Hauptfelder:
+
+```json
+{
+  "nodes": [
+    {
+      "id": "class:it-sicherheit",
+      "label": "IT-Sicherheit",
+      "kind": "Class",
+      "layer": "TBox"
+    }
+  ],
+  "edges": [
+    {
+      "id": "CLASSIFIED_AS:...",
+      "source": "entity:...",
+      "target": "class:it-sicherheit",
+      "type": "CLASSIFIED_AS",
+      "layer": "ABox_to_TBox"
+    }
+  ]
+}
+```
+
+Knoten enthalten mindestens `id`, `label` und `kind`. In `withBoxing` gibt es drei wichtige Gruppen:
+
+- ABox-Knoten: `Document`, `Excerpt`, `Concept`, `PER`, `ORG`, `LOC`, `MISC` und weitere erkannte Entitaetstypen.
+- TBox-Knoten: `Class`, also gruene Boxen wie `IT-Sicherheit`, `Rettungsdienst`, `Schnittstelle` oder `DIN EN 1789`.
+- Synonym-Knoten: `Synonym`, also gelbe gestrichelte Boxen wie `RTW`, `Bluetooth`, `BitLocker` oder `BSI`.
+
+Kanten enthalten mindestens `id`, `source`, `target` und `type`. Zusaetzlich tragen TBox-Kanten `layer: "TBox"`, Klassifizierungskanten `layer: "ABox_to_TBox"` und normale Extraktionskanten keinen Layer oder ABox-Eigenschaften wie `confidence` und `evidence`.
+
+### ABox-Kantentypen
+
+Diese Kanten entstehen aus den Eingabedaten und den extrahierten Textmustern:
+
+- `HAS_EXCERPT`: wird in `add_excerpt()` erzeugt und verbindet Dokumente mit ihren Exzerpten.
+- `MENTIONS`: wird in `add_entity()` erzeugt und verbindet ein Exzerpt mit jeder darin erkannten Entitaet.
+- `EVIDENCE_FOR`: wird in `add_triple()` erzeugt und verbindet ein Exzerpt mit Subjekt und Objekt einer extrahierten Relation.
+- `IS_A`: entsteht bei Mustern wie `ist`, `sind`, `gilt als`, `wird als`.
+- `HAS_PART`: entsteht bei Mustern wie `enthaelt`, `umfasst`, `beinhaltet`, `besteht aus`.
+- `USES`: entsteht bei Mustern wie `nutzt`, `verwendet`, `setzt ein`.
+- `CAUSES_OR_ENABLES`: entsteht bei Mustern wie `fuehrt zu`, `ermoeglicht`, `bewirkt`, `schafft`.
+- `DEPENDS_ON`: entsteht bei Mustern wie `haengt ab von`, `abhaengig von`.
+- `PART_OF`: entsteht bei Mustern wie `ist Teil von`, `gehoert zu`.
+
+Die Relationsextraktion sitzt in `PatternRelationExtractor`. Sie zerlegt den Exzerptinhalt in Saetze, prueft jeden Satz gegen die definierten Regex-Muster und waehlt fuer Subjekt und Objekt die beste bereits erkannte Entitaet. Gibt es keinen direkten Treffer, wird aus den letzten Woertern des Satzteils ein `Concept` gebildet. Jede extrahierte Relation bekommt eine `confidence`, den Evidenzsatz und die `source_excerpt_id`.
+
+### TBox-Kantentypen
+
+Diese Kanten werden in `kgexzerpt/ontology.py` explizit aufgebaut:
+
+- `SUBCLASS_OF`: ordnet Klassen hierarchisch ein, zum Beispiel `Schwachstelle -> IT-Sicherheit`, `Drahtlose Kommunikation -> Schnittstelle` oder `Rettungswagen (Typ C) -> Rettungsdienstfahrzeug`.
+- `SYNONYM_OF`: verbindet Synonym-Knoten mit ihrer Klasse, zum Beispiel `RTW -> Rettungswagen (Typ C)` oder `BitLocker -> Kryptographie und Verschluesselung`.
+- `DEFINED_BY`: verbindet normativ definierte Fahrzeugklassen mit `DIN EN 1789`.
+- `RELATED_BUT_DISTINCT_FROM`: markiert fachlich verwandte, aber nicht identische Klassen; aktuell `Rettungswagen (Typ C) -> Krankentransportwagen`.
+- `USED_IN`: verbindet Klassen mit ihrem Einsatzkontext, zum Beispiel `Medizinprodukt -> Rettungsdienst`.
+- `PART_OF`: beschreibt Klassenbestandteile, zum Beispiel `Schnittstelle -> Vernetztes System` oder `Firmware und Update -> Vernetztes System`.
+- `RELATED_TO`: beschreibt lose fachliche Naehe, zum Beispiel `Daseinsvorsorge und Gefahrenabwehr -> Rettungsdienst`.
+- `SECURITY_MEASURE`: verbindet `Kryptographie und Verschluesselung` mit `IT-Sicherheit`.
+- `PROTECTS_OR_ENDANGERS`: verbindet `Daten und Datenschutz` mit `IT-Sicherheit`.
+
+Diese TBox-Kanten haben `layer: "TBox"` und werden in der Visualisierung gruener und staerker gezeichnet.
+
+### CLASSIFIED_AS-Berechnung
+
+`CLASSIFIED_AS` ist die Bruecke von ABox zu TBox. Sie wird nicht aus einem einzelnen Satzmuster gelesen, sondern nach dem Aufbau der TBox automatisch berechnet:
+
+1. Alle `Class`-Knoten werden gesammelt.
+2. Fuer jede Klasse werden `aliases`, `keywords` und optional `entity_kinds` normalisiert.
+3. Alle ABox-Entitaeten werden durchlaufen; `Class`, `Synonym`, `Document` und `Excerpt` werden uebersprungen.
+4. Pro Entitaet werden `label` und `aliases` normalisiert.
+5. Eine `CLASSIFIED_AS`-Kante entsteht, wenn einer dieser Tests passt:
+   - Der Entitaetstyp passt zu `entity_kinds`, zum Beispiel `ORG -> Organisation` oder `PER -> Person`.
+   - Ein Alias stimmt exakt ueberein.
+   - Ein Alias mit mindestens fuenf Zeichen ist im Entitaetslabel enthalten oder umgekehrt.
+   - Ein Keyword mit mindestens vier Zeichen kommt im Entitaetslabel vor.
+6. Die Kante bekommt `layer: "ABox_to_TBox"` und `matched_by`, zum Beispiel `entity_kind:ORG`, `alias` oder `keyword:bluetooth`.
+
+Dadurch entstehen die Box-Verbindungen fuer den ganzen Graphen: Die extrahierten Textknoten bleiben unveraendert, werden aber fachlich an die TBox angebunden.
+
+### Darstellung im Browser
+
+Nach dem Bau kopiert `quickstart.bat` `graph.json` nach `svelte-app/public/graph.json`. Die Svelte-App laedt die Datei in `KnowledgeGraph.svelte` mit:
+
+```js
+graph = await fetch(url).then(r => r.json());
+```
+
+Danach rendert D3 eine Force-Layout-Simulation:
+
+- `Class` wird als gruene Box gezeichnet.
+- `Synonym` wird als gelbe gestrichelte Box gezeichnet.
+- ABox-Knoten werden als Kreise gezeichnet.
+- `layer: "TBox"` wird als gruene Kante gezeichnet.
+- `layer: "ABox_to_TBox"` wird als gestrichelte Klassifizierungskante gezeichnet.
+- Normale ABox-Kanten werden grau gezeichnet.
+- Das Suchfeld filtert Knoten und zeigt nur Kanten, deren Quelle und Ziel sichtbar bleiben.
+- Ein Klick auf einen Knoten zeigt rechts die Rohdaten aus dem JSON.
+
 ## Geschichtswissenschaftlicher Anspruch
 
 Der Graph ist kein Ersatz fuer Quellenkritik, sondern ein Werkzeug zur strukturierten Exploration. Jede Wissenseinheit soll aus einem Exzerpt mit Seitenangabe, Inhalt und Anmerkung hervorgehen, damit Aussagen auf ihre Belegstelle zurueckgefuehrt werden koennen. Gerade fuer historische Arbeit ist wichtig, dass der Graph nicht vorgibt, Ambivalenz aufzulosen: Er macht Verdichtungen, wiederkehrende Begriffe, Akteurskonstellationen und moegliche Relationen sichtbar, die anschliessend hermeneutisch und quellenkritisch geprueft werden muessen.
