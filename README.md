@@ -6,7 +6,10 @@ Python-Paket, um aus PDFs oder Markdown-Exzerpten im Format `| Seite | Inhalt | 
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+# on linux: 
+# source .venv/bin/activate
+# on windows:
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 python -m spacy download de_core_news_lg  # optional, aber empfohlen
 ```
